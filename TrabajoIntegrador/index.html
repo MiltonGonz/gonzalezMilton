@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiverso de Personajes</title>
+</head>
+<body>
+    <h1>Multiverso de Personajes</h1>
+
+    
+    <div class="controles">
+        <input type="text" id="nombre" placeholder="Buscar por nombre...">
+
+        <select id="selectPrincipal">
+            <option value="rickMorty">Rick and Morty</option>
+            <option value="simpsons">Los Simpsons</option>
+            <option value="ambos">Ambos</option>
+        </select>
+
+        <button id="botonBuscar">Buscar</button>
+    </div>
+
+    
+    <div id="filtros">
+        <label>Estado:</label>
+        <select id="selectEstado">
+            <option value="todos">Todos</option>
+            <option value="Alive">Vivo</option>
+            <option value="Dead">Muerto</option>
+            <option value="unknown">Desconocido</option>
+        </select>
+
+        <label>Orden:</label>
+        <select id="selectOrden">
+            <option value="az">A → Z</option>
+            <option value="za">Z → A</option>
+        </select>
+
+        <button id="botonAplicar">Aplicar</button>
+    </div>
+
+    
+    <div id="mostrarEstadisticas"></div>
+
+    <h2>Favoritos</h2>
+    <div id="mostrarFavoritos"></div>
+
+    
+    <div id="mostrarPersonajes"></div>
+
+<script>
+
+    const inputNombre = document.getElementById("nombre")
+    const seleccionar = document.getElementById("selectPrincipal")
+    const botonBuscar = document.getElementById("botonBuscar")
+    const mostrarPersonajes = document.getElementById("mostrarPersonajes")
+    const mostrarEstadisticas = document.getElementById("mostrarEstadisticas")
+    const filtros = document.getElementById("filtros")
+    const selectEstado = document.getElementById("selectEstado")
+    const selectOrden = document.getElementById("selectOrden")
+    const botonAplicar = document.getElementById("botonAplicar")
+
+    let todosLosPersonajes = []
+
+    let favoritos = JSON.parse(localStorage.getItem("favoritos")) || []
+
+
+
+    function normalizarRickAndMorty(personaje) 
+    {
+
+        return {
+            nombre:  personaje.name,
+            imagen:  personaje.image,
+            estado:  personaje.status,
+            genero:  personaje.gender,
+            detalle: personaje.species,
+            origen:  "rickandmorty"
+        }
+
+    }
+
+            function normalizarSimpsons(personaje) 
+            {
+
+            return {
+            nombre: personaje.name,
+            imagen: `https://cdn.thesimpsonsapi.com/500${personaje.portrait_path}`,
+            estado: personaje.status || "unknown",
+            genero: personaje.gender || "unknown",
+            detalle: personaje.occupation || "–",
+            origen: "simpsons"
+            }
+            
+        }
+
+
+   
+
+    async function buscarRickAndMorty(nombre) 
+    {
+
+        try 
+        {
+
+            const url = nombre
+                ? `https://rickandmortyapi.com/api/character/?name=${nombre}`
+                : `https://rickandmortyapi.com/api/character`
+
+            const response = await fetch(url)
+
+            if (!response.ok) 
+            {
+
+                throw new Error(`Error ${response.status}`)
+                
+            }
+
+            const data = await response.json()
+            return data.results.map(normalizarRickAndMorty)
+
+        } catch (error) 
+        {
+
+            console.log("Rick and Morty:", error.message)
+            return []
+
+        }
+
+    }
+
+            async function buscarLosSimpsons(nombre) 
+            {
+
+                try 
+                {
+
+                    const url = `https://thesimpsonsapi.com/api/characters`
+                    const response = await fetch(url)
+
+                    if (!response.ok) 
+                    {
+
+                        throw new Error(`Error ${response.status}`)
+
+                    }
+
+                    const data = await response.json()
+
+                    const resultados = nombre
+                        ? data.results.filter(p => p.name.toLowerCase().includes(nombre.toLowerCase()))
+                        : data.results
+
+                    return resultados.map(normalizarSimpsons)
+
+                } catch (error) 
+                {
+
+                    console.log("Simpsons:", error.message)
+                    return []
+
+                }
+
+            }
+
+
+    
+
+    function mostrarEstadisticasPersonajes(personajes) 
+    {
+
+        
+        const total = personajes.length
+
+        
+        const porGenero = personajes.reduce(function(acumulador, p) 
+        {
+
+            if (acumulador[p.genero]) 
+            {
+
+                acumulador[p.genero] = acumulador[p.genero] + 1
+
+            } else 
+            {
+
+                acumulador[p.genero] = 1
+
+            }
+            return acumulador
+        }, {})
+
+        
+            const porEstado = personajes.reduce(function(acumulador, p)
+            {
+
+                if (acumulador[p.estado]) 
+                {
+
+                    acumulador[p.estado] = acumulador[p.estado] + 1
+
+                } else 
+                {
+
+                    acumulador[p.estado] = 1
+
+                }
+                return acumulador
+            }, {})
+
+                    
+                    const porOrigen = personajes.reduce(function(acumulador, p) 
+                    {
+
+                        if (acumulador[p.origen]) 
+                        {
+
+                            acumulador[p.origen] = acumulador[p.origen] + 1
+
+                        } else 
+                        {
+                            acumulador[p.origen] = 1
+
+                        }
+                        return acumulador
+                    }, {})
+
+       
+        let filasGenero = ""
+
+        for (let genero in porGenero) 
+        {
+            filasGenero += `
+                <div class="stat-fila">
+                    <span>${genero}</span>
+                    <span>${porGenero[genero]}</span>
+                </div>`
+        }
+
+        
+        let filasEstado = ""
+
+        for (let estado in porEstado) 
+        {
+            filasEstado += `
+                <div class="stat-fila">
+                    <span>${estado}</span>
+                    <span>${porEstado[estado]}</span>
+                </div>`
+        }
+
+        
+        let filasOrigen = ""
+        for (let origen in porOrigen) 
+        {
+            const nombre = origen === "rickandmorty" ? "Rick & Morty" : "Simpsons"
+            filasOrigen += `
+                <div class="stat-fila">
+                    <span>${nombre}</span>
+                    <span>${porOrigen[origen]}</span>
+                </div>`
+        }
+
+        
+        mostrarEstadisticas.style.display = "block"
+        mostrarEstadisticas.innerHTML = `
+            <h2>Estadísticas</h2>
+            <p class="stat-total">Total de personajes cargados: <strong>${total}</strong></p>
+            <div class="stats-grid">
+                <div class="stat-grupo">
+                    <h3>Por género</h3>
+                    ${filasGenero}
+                </div>
+                <div class="stat-grupo">
+                    <h3>Por estado</h3>
+                    ${filasEstado}
+                </div>
+                <div class="stat-grupo">
+                    <h3>Por universo</h3>
+                    ${filasOrigen}
+                </div>
+            </div>
+        `
+    }
+
+
+            function guardarFavoritos() 
+            {
+
+            localStorage.setItem("favoritos", JSON.stringify(favoritos))
+        }
+
+                function agregarFavorito(personaje) 
+                {
+
+                    const existe = favoritos.some(function(f) 
+                    {
+                        return f.nombre === personaje.nombre
+                    })
+
+                    if (!existe) 
+                    {
+                        favoritos.push(personaje)
+                        guardarFavoritos()
+                        renderizarFavoritos()
+                    }
+
+                }
+
+                            function quitarFavorito(nombre) 
+                            {
+
+                                favoritos = favoritos.filter(function(f) 
+                                {
+                                    return f.nombre !== nombre
+                                })
+
+                                guardarFavoritos()
+                                renderizarFavoritos()
+                            }
+
+                                        function renderizarFavoritos() 
+                                        {
+
+                                            const contenedor = document.getElementById("mostrarFavoritos")
+
+                                            if (!contenedor) return
+
+                                            if (favoritos.length === 0) 
+                                            {
+                                                contenedor.innerHTML = "<p>No hay favoritos.</p>"
+                                                return
+                                            }
+
+                                            contenedor.innerHTML = favoritos.map(function(f) 
+                                            {
+                                                return `
+                                                    <div class="tarjeta">
+                                                        <img src="${f.imagen}" width="100">
+                                                        <h4>${f.nombre}</h4>
+                                                        <button onclick="quitarFavorito('${f.nombre}')">
+                                                            Quitar
+                                                        </button>
+                                                    </div>
+                                                `
+                                            }).join("")
+                                        }
+
+   
+
+    function renderizarPersonajes(personajes) {
+
+        if (personajes.length === 0) 
+        {
+            mostrarPersonajes.innerHTML = `<p class="sin-resultados"> No se encontraron personajes.</p>`
+            return
+        }
+
+        mostrarPersonajes.innerHTML = ""
+
+        personajes.forEach(function(p) 
+        {
+
+            const esDeSimpson = p.origen === "simpsons"
+            const badgeClase  = esDeSimpson ? "badge-sim" : "badge-rm"
+            const badgeTexto  = esDeSimpson ? "Simpsons"  : "Rick & Morty"
+
+            let estadoClase = "unknown"
+            if (p.estado === "Alive") estadoClase = "alive"
+            if (p.estado === "Dead")  estadoClase = "dead"
+
+                const tarjeta = document.createElement("div")
+                tarjeta.className = "tarjeta"
+
+                const esFavorito = favoritos.some(function(f) {
+                return f.nombre === p.nombre
+                })
+
+                    tarjeta.innerHTML = `
+                    <img src="${p.imagen}" alt="${p.nombre}">
+                    <div class="tarjeta-info">
+                    <span class="badge ${badgeClase}">${badgeTexto}</span>
+                    <h3>${p.nombre}</h3>
+                    <p class="${estadoClase}">● ${p.estado}</p>
+                    <p> ${p.genero}</p>
+                    <p> ${p.detalle}</p>
+
+                    <button class="btnFavorito">
+                        ${esFavorito ? " Quitar favorito" : " Favorito"}
+                    </button>
+                </div>
+                `
+                    const botonFavorito = tarjeta.querySelector(".btnFavorito")
+
+                    botonFavorito.addEventListener("click", function() 
+                    {
+
+                        if (esFavorito) 
+                        {
+                            quitarFavorito(p.nombre)
+                        } else 
+                        {
+                            agregarFavorito(p)
+                        }
+
+                        renderizarPersonajes(personajes)
+                    })
+
+                        mostrarPersonajes.appendChild(tarjeta)
+                    })
+    }
+
+
+    
+
+    function filtrarYOrdenar() 
+    {
+
+        const estadoElegido = selectEstado.value
+        const ordenElegido  = selectOrden.value
+
+        let resultado = todosLosPersonajes.filter(function(p) 
+        {
+            if (estadoElegido === "todos") return true
+            return p.estado === estadoElegido
+        })
+
+        resultado.sort(function(a, b) 
+        {
+            if (ordenElegido === "az") 
+            {
+                return a.nombre.localeCompare(b.nombre)
+            } else 
+            {
+                return b.nombre.localeCompare(a.nombre)
+            }
+        })
+
+        renderizarPersonajes(resultado)
+    }
+
+
+
+    async function buscar() {
+
+        const nombre = inputNombre.value.trim()
+        const fuente = seleccionar.value
+
+        mostrarPersonajes.innerHTML = "<p>Cargando...</p>"
+        mostrarEstadisticas.style.display = "none"
+        filtros.style.display = "none"
+
+        if (fuente === "rickMorty") 
+        {
+
+            todosLosPersonajes = await buscarRickAndMorty(nombre)
+
+        } else if (fuente === "simpsons") 
+        {
+
+            todosLosPersonajes = await buscarLosSimpsons(nombre)
+
+        } else if (fuente === "ambos") 
+        {
+
+            const personajesRM  = await buscarRickAndMorty(nombre)
+            const personajesSim = await buscarLosSimpsons(nombre)
+
+            todosLosPersonajes = [...personajesRM, ...personajesSim]
+        }
+
+                if (todosLosPersonajes.length > 0) {
+                    filtros.style.display = "flex"
+                    mostrarEstadisticasPersonajes(todosLosPersonajes)  // ← calcula y muestra estadísticas
+                }
+
+                selectEstado.value = "todos"
+                selectOrden.value  = "az"
+
+                renderizarPersonajes(todosLosPersonajes)
+    }
+
+
+    
+
+    botonBuscar.addEventListener("click", buscar)
+
+    botonAplicar.addEventListener("click", filtrarYOrdenar)
+
+    window.addEventListener("load", function() 
+    {
+    renderizarFavoritos()
+    })
+
+</script>
+</body>
+</html>
